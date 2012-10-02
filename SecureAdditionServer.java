@@ -6,44 +6,14 @@ import java.security.*;
 import java.util.StringTokenizer;
 
 
-public class SecureAdditionServer {
-	static final int port = 8189;
-	static final String KEYSTORE = "ServerKeystore.ks";
-	static final String TRUSTSTORE = "ServerTruststore.ks";
-	static final String STOREPASSWD = "222222";
-	static final String ALIASPASSWD = "444444";
+class ServerConnectionHandler extends Thread {
 
+    private Socket socket = null;
+	
 	public void run() {
 		try {
-			KeyStore ks = KeyStore.getInstance( "JCEKS" );
-			ks.load( new FileInputStream( KEYSTORE ), STOREPASSWD.toCharArray() );
-			
-			KeyStore ts = KeyStore.getInstance( "JCEKS" );
-			ts.load( new FileInputStream( TRUSTSTORE ), ALIASPASSWD.toCharArray() );
-			
-			KeyManagerFactory kmf = KeyManagerFactory.getInstance( "SunX509" );
-			kmf.init( ks, STOREPASSWD.toCharArray() );
-			
-			TrustManagerFactory tmf = TrustManagerFactory.getInstance( "SunX509" );
-			tmf.init( ts );
-			
-			SSLContext sslContext = SSLContext.getInstance( "TLS" );
-			sslContext.init( kmf.getKeyManagers(), tmf.getTrustManagers(), null );
-			SSLServerSocketFactory sslServerFactory = sslContext.getServerSocketFactory();
-			SSLServerSocket server = (SSLServerSocket) sslServerFactory.createServerSocket( port );
-			server.setNeedClientAuth(false);
-			String[] ciphers = server.getSupportedCipherSuites();
-			String[] selectedCiphers = { ciphers[9] };
-			System.out.println(ciphers[9]);
-			server.setEnabledCipherSuites( selectedCiphers );
-			
-			System.out.println("\n>>>> Secure Server: active ");
-			// accept a connection
-			SSLSocket serverSocket = (SSLSocket) server.accept();
-			System.out.println("\n>>>> Secure Server: connection request");
-
-            BufferedReader in = new BufferedReader( new InputStreamReader( serverSocket.getInputStream() ) );
-			PrintWriter out = new PrintWriter( serverSocket.getOutputStream(), true );			
+	        BufferedReader in = new BufferedReader( new InputStreamReader( socket.getInputStream() ) );
+			PrintWriter out = new PrintWriter( socket.getOutputStream(), true );			
 			
 			String str;
 			while ( !(str = in.readLine()).equals("ciao") ) {
@@ -51,73 +21,92 @@ public class SecureAdditionServer {
 				
 				if (str.length() > 8 && str.substring(0,8).equals("Download"))
 				{
-					System.out.println("Downloading");
-					String file = str.substring(9);
-					System.out.println("Downloading " + file);
-					BufferedReader infile = new BufferedReader(new FileReader("serverfiles/" + file));
-					String line = "";
-					while((line = infile.readLine())!=null)
-					{
-						out.println(line);
-					}
-					//download pier.txt
+
 				}
 				
 				else if(str.length() > 6 && str.substring(0,6).equals("Upload"))
 				{
-					System.out.println("Recieving file");
-					
-					String file = str.substring(7);
-					String filepath ="serverfiles/" +file;
-					
-					out.println("Uploading " + file);
-					
-					PrintWriter outfile = new PrintWriter(new BufferedWriter(new FileWriter(filepath)));
-					String filecontent = "";
-					while(!(str = in.readLine()).equals("##EOF##"))
-						outfile.println(str);
-					
-					outfile.close();
-					System.out.println("Done recieving file");
+
 				}
 					
 				
 				else if(str.length() > 6 && str.substring(0,6).equals("Delete"))
 				{
-					String file = str.substring(7);
-					String filepath ="serverfiles/" +file;
-				
-					File f = new File(filepath);
-					
-					if(f.exists()) {
-						f.delete();
-						System.out.println("Deleting " + file);
-					}
+
 				}
 					
 				
 				else
 				{
 					System.out.println("Unknowned command!");
-					out.println("Command :)");
 				}
-					
-				
-				/*
-				double result = 0;
-				StringTokenizer st = new StringTokenizer( str );
-				try {
-					while( st.hasMoreTokens() ) {
-						Double d = new Double( st.nextToken() );
-						result += d.doubleValue();
-					}
-					out.println( "S -> C:  The result is " + result );
-				}
-				catch( NumberFormatException nfe ) {
-					out.println( "S -> C:  Sorry C, but your list contains an invalid number. Do you know what a number is?" );
-				}*/
+				out.println("Command :)");
+
 			}
-			serverSocket.close();
+			socket.close();
+		}
+        catch(Exception e) {
+		
+		}
+	}
+	
+	public ServerConnectionHandler(Socket socket) {
+	    this.socket = socket;
+	}
+}
+
+public class SecureAdditionServer {
+	static final int port = 8189;
+	static final String KEYSTORE = "ServerKeystore.ks";
+	static final String TRUSTSTORE = "ServerTruststore.ks";
+	static final String STOREPASSWD = "222222";
+	static final String ALIASPASSWD = "444444";
+	
+	private SSLServerSocket initServer() throws Exception {
+		KeyStore ks = KeyStore.getInstance( "JCEKS" );
+		ks.load( new FileInputStream( KEYSTORE ), STOREPASSWD.toCharArray() );
+			
+		KeyStore ts = KeyStore.getInstance( "JCEKS" );
+		ts.load( new FileInputStream( TRUSTSTORE ), ALIASPASSWD.toCharArray() );
+			
+		KeyManagerFactory kmf = KeyManagerFactory.getInstance( "SunX509" );
+		kmf.init( ks, STOREPASSWD.toCharArray() );
+			
+		TrustManagerFactory tmf = TrustManagerFactory.getInstance( "SunX509" );
+		tmf.init( ts );
+			
+		SSLContext sslContext = SSLContext.getInstance( "TLS" );
+		sslContext.init( kmf.getKeyManagers(), tmf.getTrustManagers(), null );
+		SSLServerSocketFactory sslServerFactory = sslContext.getServerSocketFactory();
+		
+		// create a server socket with infinite number of backlogs
+		SSLServerSocket server = (SSLServerSocket) sslServerFactory.createServerSocket( port , 50 );
+		server.setNeedClientAuth(false);
+		
+		String[] ciphers = server.getSupportedCipherSuites();
+		String[] selectedCiphers = { ciphers[9] };
+		System.out.println(ciphers[9]);
+		server.setEnabledCipherSuites( selectedCiphers );
+		
+		return server;
+	}
+
+	public void run() {
+		try {
+			
+			SSLServerSocket server = this.initServer();
+			
+			System.out.println("\n>>>> Secure Server: active ");
+			// accept a connection
+			
+			while(true) {
+				System.out.println("\n>>>> Secure Server: Waiting for connection request");
+				SSLSocket serverSocket = (SSLSocket) server.accept();
+				System.out.println("\n>>>> Secure Server: connection request accepted");
+				ServerConnectionHandler handle = new ServerConnectionHandler(serverSocket);
+				System.out.println("\n>>>> Secure Server: about to run");
+				handle.start();
+			}
 		}
 		catch( Exception x ) {
 			System.out.println( x );
