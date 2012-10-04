@@ -76,6 +76,14 @@ class ServerConnectionHandler extends Thread {
 				String num = cmd.next_argument();
 				main.add(num);
 			}
+
+			if(cmd.isEqual("argtest")) {
+				this.print_cmd("Command: " + cmd);
+				this.print_cmd("Arg1: " + cmd.next_argument());
+				this.print_cmd("Arg2: " + cmd.next_argument());
+				this.print_cmd("Arg3: " + cmd.next_argument());
+				this.print_cmd("Arg4: " + cmd.next_argument());
+			}
 		}
 		catch( Exception x ) {
 			System.out.println( x );
