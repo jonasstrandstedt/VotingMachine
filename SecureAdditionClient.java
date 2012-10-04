@@ -75,38 +75,10 @@ public class SecureAdditionClient {
 				BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 				outStr = reader.readLine();
 				out.println(outStr);
-				
-				if(outStr.length() > 6 && outStr.substring(0,6).equals("Upload")) {
-					String file = outStr.substring(7);
-					String filepath ="clientfiles/" +file;
-					File f = new File(filepath);
-					if(f.exists()) {
-						BufferedReader infile = new BufferedReader(new FileReader(filepath));
-						String line = "";
-						while((line = infile.readLine())!=null)
-						{
-							out.println(line);
-						}
-						infile.close();
-						out.println("##EOF##");
-						
-					}
-				}
+
 			}
 			
-			/*
-			String numbers = "1.2 3.4 5.6";
-			System.out.println( "\nC -> S:  Sending the numbers " + numbers );
-			out.println( numbers );
-			System.out.println( in.readLine() );
 
-			numbers = "100 200";
-			System.out.println( "\nC -> S:  Sending the numbers " + numbers );
-			out.println( numbers );
-			System.out.println( in.readLine() );
-
-			out.println ( "ciao" );
-			*/
 		}
 		catch( Exception x ) {
 			System.out.println( x );

@@ -4,53 +4,116 @@ import java.net.*;
 import javax.net.ssl.*;
 import java.security.*;
 import java.util.StringTokenizer;
+import java.util.*;
+import java.util.concurrent.Semaphore;
+
+class ServerInputOutput extends Thread {
+	ServerConnectionHandler sch;
+	BufferedReader incoming;
+	PrintWriter outgoing;
+	Boolean wait_for_command = true;
+		
+     ServerInputOutput(ServerConnectionHandler conn, BufferedReader in, PrintWriter out) {
+     	this.sch = conn;
+        this.incoming = in;
+        this.outgoing = out;
+     }
+ 
+    public void run() {
+		try {
+			String inputLine;
+			while ( wait_for_command && (inputLine = this.incoming.readLine()) != null)
+			{
+				wait_for_command = sch.handle_command(inputLine);
+			}
+		} 
+		catch(IOException ioe) {
+		
+		}
+		sch.print_cmd("Thread done.");
+		sch.terminate();
+	}
+}
 
 
 class ServerConnectionHandler extends Thread {
+	public static int connection_handler_next_id= 0;
 
+	private SecureAdditionServer main = null;
+	private int handler_id;
     private Socket socket = null;
+    private BufferedReader in = null;
+    private PrintWriter out = null;
 	
 	public void run() {
 		try {
-	        BufferedReader in = new BufferedReader( new InputStreamReader( socket.getInputStream() ) );
-			PrintWriter out = new PrintWriter( socket.getOutputStream(), true );			
+	        in = new BufferedReader( new InputStreamReader( socket.getInputStream() ) );
+			out = new PrintWriter( socket.getOutputStream(), true );			
 			
-			String str;
-			while ( !(str = in.readLine()).equals("ciao") ) {
-			    System.out.println("\n>>>> Secure Server: receives: " + str);
-				
-				if (str.length() > 8 && str.substring(0,8).equals("Download"))
-				{
-
-				}
-				
-				else if(str.length() > 6 && str.substring(0,6).equals("Upload"))
-				{
-
-				}
-					
-				
-				else if(str.length() > 6 && str.substring(0,6).equals("Delete"))
-				{
-
-				}
-					
-				
-				else
-				{
-					System.out.println("Unknowned command!");
-				}
-				out.println("Command :)");
-
-			}
-			socket.close();
+			ServerInputOutput sio = new ServerInputOutput(this, in, out);
+			sio.start();
+			
+			
 		}
         catch(Exception e) {
 		
 		}
 	}
+
+
+	public Boolean handle_command(String command) {
+		try {
+			this.print_cmd("Recieved: " + command);
+
+			CommandParser cmd = new CommandParser(command);
+
+			if (cmd.isEqual("quit", "q")) {
+				out.println("Terminating connection on request, thank you!");
+				return false;
+			}
+
+			if(cmd.isEqual("add") && cmd.count_arguments() > 0) {
+				String num = cmd.next_argument();
+				main.add(num);
+			}
+		}
+		catch( Exception x ) {
+			System.out.println( x );
+			x.printStackTrace();
+			return false;
+		}
+
+		return true;
+	}
+
+	public void send_command(String command) {
+		out.println(command);
+	}
+
+	public void handle_notification() {
+		out.println("Shit just got real");
+	}
+
+	public void print_cmd(String msg) {
+		System.out.println("("+handler_id+") >> " + msg);
+	}
+
+	public void terminate() {
+		try {
+			main.remove_handle(this);
+			socket.close();
+		}
+		catch( Exception x ) {
+			System.out.println( x );
+			x.printStackTrace();
+		}
+	}
 	
-	public ServerConnectionHandler(Socket socket) {
+	public ServerConnectionHandler(SecureAdditionServer m, Socket socket) {
+		handler_id = connection_handler_next_id;
+		connection_handler_next_id++;
+
+		this.main = m;
 	    this.socket = socket;
 	}
 }
@@ -61,6 +124,13 @@ public class SecureAdditionServer {
 	static final String TRUSTSTORE = "ServerTruststore.ks";
 	static final String STOREPASSWD = "222222";
 	static final String ALIASPASSWD = "444444";
+	
+	Boolean spawn = true;
+
+	private static Semaphore mutex = new Semaphore(1);
+	private static int additionresult = 0;
+	private static Vector<ServerConnectionHandler> connectionList = null;
+	
 	
 	private SSLServerSocket initServer() throws Exception {
 		KeyStore ks = KeyStore.getInstance( "JCEKS" );
@@ -93,18 +163,21 @@ public class SecureAdditionServer {
 
 	public void run() {
 		try {
+	
+			this.additionresult = 0;
+			this.connectionList = new Vector<ServerConnectionHandler>();
 			
 			SSLServerSocket server = this.initServer();
 			
-			System.out.println("\n>>>> Secure Server: active ");
-			// accept a connection
-			
-			while(true) {
-				System.out.println("\n>>>> Secure Server: Waiting for connection request");
+			this.print_cmd("Active");
+			while(spawn) {
+				this.print_cmd("Waiting for connection request");
 				SSLSocket serverSocket = (SSLSocket) server.accept();
-				System.out.println("\n>>>> Secure Server: connection request accepted");
-				ServerConnectionHandler handle = new ServerConnectionHandler(serverSocket);
-				System.out.println("\n>>>> Secure Server: about to run");
+
+				this.print_cmd("Connection request accepted");
+
+				ServerConnectionHandler handle = new ServerConnectionHandler(this, serverSocket);
+				this.add_handle(handle);
 				handle.start();
 			}
 		}
@@ -112,6 +185,52 @@ public class SecureAdditionServer {
 			System.out.println( x );
 			x.printStackTrace();
 		}
+	}
+
+	public void add(String nr) {
+		int number = 0;
+		try {
+			number = Integer.parseInt(nr);
+		}
+		catch (NumberFormatException nfo) {}
+
+		this.print_cmd("Trying to acquire the mutex");
+		try {
+			mutex.acquire();
+			this.print_cmd("Mutex aquired");
+			additionresult += number;
+			
+			this.notify_all_connections("number is now " + additionresult);
+			Thread.sleep(4000);
+
+			mutex.release();
+			this.print_cmd("Mutex released");
+		}
+		catch(InterruptedException ie) {
+
+		}
+
+	}
+
+	public void notify_all_connections(String msg) {
+		for (int i = 0; i < this.connectionList.size(); i++) {
+			ServerConnectionHandler h = this.connectionList.get(i);
+			h.send_command(msg);
+		}
+	}
+
+	private void add_handle(ServerConnectionHandler h) {
+		this.connectionList.add(h);
+		this.print_cmd(this.connectionList.size() + " active connections");
+	}
+
+	public void remove_handle(ServerConnectionHandler h) {
+		this.connectionList.remove(h);
+		this.print_cmd(this.connectionList.size() + " active connections");
+	}
+
+	private void print_cmd(String msg) {
+		System.out.println(">>>> Secure Server: " + msg);
 	}
 	
 	public static void main( String[] args ) {
