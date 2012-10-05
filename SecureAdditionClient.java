@@ -1,7 +1,11 @@
+//package start;
+
 import java.io.*;
 import java.net.*;
 import java.security.KeyStore;
 import javax.net.ssl.*;
+import javax.swing.*;
+import java.awt.*;
 
 class ExtraThread extends Thread{
 		BufferedReader incoming;
@@ -22,7 +26,47 @@ class ExtraThread extends Thread{
          }
      }
 
+
+
 public class SecureAdditionClient {
+
+	public SecureAdditionClient () {
+
+		}
+
+	//GUI 
+	private static void createAndShowGUI()
+	{
+		//Window
+		JFrame frame = new JFrame("TestarGUI");
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+		//Layout
+		JPanel contentPane = new JPanel(new BorderLayout());
+
+		//Label
+		JLabel label = new JLabel("Hello Voting People!");
+		contentPane.add(label, BorderLayout.PAGE_START);
+
+		//Buttons
+		JRadioButton voteButton1 = new JRadioButton("Vote for Kristina ;D");
+		
+		contentPane.add(voteButton1, BorderLayout.CENTER);
+
+		frame.setContentPane(contentPane);		
+		
+
+		//Container
+		
+		//frame.getContentPane().setLayout(new BorderLayout());
+		//frame.getContentPane().add(pnlEast, BorderLayout.CENTER);
+
+		//Display the window
+		frame.pack();
+		frame.setVisible(true);
+	}
+
+	//End of GUI
 	private InetAddress host;
 	// This is not a reserved port number 
 	static final int port = 8189;
@@ -88,7 +132,10 @@ public class SecureAdditionClient {
 	
 	
 	public static void main( String[] args ) {
-		try {
+		SecureAdditionClient client = new SecureAdditionClient(); 
+		client.createAndShowGUI();
+
+		/*try {
 			InetAddress host = InetAddress.getLocalHost();
 			if ( args.length > 0 ) {
 				host = InetAddress.getByName( args[0] );
@@ -99,6 +146,6 @@ public class SecureAdditionClient {
 		catch ( UnknownHostException uhx ) {
 			System.out.println( uhx );
 			uhx.printStackTrace();
-		}
+		}*/
 	}
 }
