@@ -71,6 +71,14 @@ class ServerConnectionHandler extends Thread {
 				out.println("Terminating connection on request, thank you!");
 				return false;
 			}
+			
+			if (cmd.isEqual("fetch_question", "fetch_poll")) {
+				out.println("response_question \"What is your favorite course?\"");
+			}
+			
+			if (cmd.isEqual("fetch_alternatives")) {
+				out.println("response_alternatives \"TNCG15 Advanced global Illumination\" \"TNM031 Network programming\" \"TNM090 Software Engineering\"");
+			}
 
 			if(cmd.isEqual("add") && cmd.count_arguments() > 0) {
 				String num = cmd.next_argument();
