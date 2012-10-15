@@ -133,8 +133,8 @@ public class SecureAdditionClient {
 	
 	public static void main( String[] args ) {
 		SecureAdditionClient client = new SecureAdditionClient(); 
-		client.createAndShowGUI();
-
+		//client.createAndShowGUI();
+		client.run();
 		/*try {
 			InetAddress host = InetAddress.getLocalHost();
 			if ( args.length > 0 ) {

@@ -7,6 +7,31 @@ import java.util.StringTokenizer;
 import java.util.*;
 import java.util.concurrent.Semaphore;
 
+class TokenVote {
+	private int token;
+	private int vote;
+	
+	public TokenVote(int t, int v) {
+		this.token = t;
+		this.vote = v;
+	}
+	
+	public Boolean isEqual(int t) {
+		return this.token == t;
+	}
+	
+	public int get_token() {
+		return this.token;
+	}
+	public int get_vote() {
+		return this.vote;
+	}
+	
+	public String toString() {
+		return "(" +this.token + ", " +this.vote + ")";
+	}
+}
+
 class ServerInputOutput extends Thread {
 	ServerConnectionHandler sch;
 	BufferedReader incoming;
@@ -73,11 +98,15 @@ class ServerConnectionHandler extends Thread {
 			}
 			
 			if (cmd.isEqual("fetch_question", "fetch_poll")) {
-				out.println("response_question \"What is your favorite course?\"");
+				out.println("response_question " + main.get_question());
 			}
 			
 			if (cmd.isEqual("fetch_alternatives")) {
-				out.println("response_alternatives \"TNCG15 Advanced global Illumination\" \"TNM031 Network programming\" \"TNM090 Software Engineering\"");
+				out.println("response_alternatives " + main.get_answers());
+			}
+			
+			if (cmd.isEqual("vote")) {
+				main.vote(cmd.next_argument(),cmd.next_argument());
 			}
 
 			if(cmd.isEqual("add") && cmd.count_arguments() > 0) {
@@ -144,8 +173,11 @@ public class SecureAdditionServer {
 	Boolean spawn = true;
 
 	private static Semaphore mutex = new Semaphore(1);
+	private static Semaphore vote_mutex = new Semaphore(1);
 	private static int additionresult = 0;
 	private static Vector<ServerConnectionHandler> connectionList = null;
+	private static Vector<TokenVote> votelist = null;
+	private static Vector<Integer> voters = null;
 	
 	
 	private SSLServerSocket initServer() throws Exception {
@@ -180,8 +212,13 @@ public class SecureAdditionServer {
 	public void run() {
 		try {
 	
+			Authenticate auth = new Authenticate();
+			
 			this.additionresult = 0;
 			this.connectionList = new Vector<ServerConnectionHandler>();
+			this.votelist = new Vector<TokenVote>();
+			this.voters = auth.get_all_tokens();
+			
 			
 			SSLServerSocket server = this.initServer();
 			
@@ -225,7 +262,79 @@ public class SecureAdditionServer {
 		catch(InterruptedException ie) {
 
 		}
+		
+	}
+	
+	public void vote(String token, String vote) { 
+		this.print_cmd("Recieved vote");
+		int vote_number = 0;
+		int token_number = 0;
+		try {
+			vote_number = Integer.parseInt(vote);
+			token_number = Integer.parseInt(token);
+		}
+		catch (NumberFormatException nfo) {
+			this.print_cmd("Error in parsing vote");
+		}
+		
+		if(vote_number < 3) {
+			this.print_cmd("Trying to acquire the mutex");
+			try {
+				mutex.acquire();
+				this.print_cmd("Mutex aquired");
+				
+				Boolean voted = false;
+				
+				if(voters.contains(token_number)) {
+					for (int i = 0; i < votelist.size(); i++ ) {
+						if(votelist.elementAt(i).isEqual(token_number)) {
+							voted = true;
+						}
+					}
+					
+					if(! voted) {
+						this.print_cmd("Adding vote " );
+						votelist.add(new TokenVote(token_number, vote_number));
+						this.print_cmd("Adding vote " + votelist.lastElement());
+					}
+					
+					int first = 0;
+					int second = 0;
+					int third = 0;
+					
+					for (int i = 0; i < votelist.size(); i++ ) {
+						if(votelist.elementAt(i).get_vote() == 0) {
+							first++;
+						}
+						if(votelist.elementAt(i).get_vote() == 1) {
+							second++;
+						}
+						if(votelist.elementAt(i).get_vote() == 2) {
+							third++;
+						}
+					}
+					
+					String stats = "statistics " + first + " " + second + " " +third;
+					this.print_cmd("Sending: " + stats);
+					this.notify_all_connections(stats);
+				}
+				
 
+				mutex.release();
+				this.print_cmd("Mutex released");
+			}
+			catch(InterruptedException ie) {
+				this.print_cmd("Mutex interruption");
+			}
+		}
+	}
+	
+	public String get_question() {
+		return "\"What is your favorite course?\"";
+	}
+	
+	public String get_answers() {
+		return "\"TNCG15 Advanced global Illumination\" \"TNM031 Network programming\" \"TNM090 Software Engineering\"";
 	}
 
 	public void notify_all_connections(String msg) {
@@ -250,7 +359,7 @@ public class SecureAdditionServer {
 	}
 	
 	public static void main( String[] args ) {
-		SecureAdditionServer addServer = new SecureAdditionServer();
-		addServer.run();
+		SecureAdditionServer server = new SecureAdditionServer();
+		server.run();
 	}
 }
