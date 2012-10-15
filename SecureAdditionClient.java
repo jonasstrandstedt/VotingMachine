@@ -197,17 +197,12 @@ public class SecureAdditionClient implements ActionListener {
 
 
 		SecureAdditionClient client = new SecureAdditionClient(); 
-<<<<<<< HEAD
-		//client.createAndShowGUI();
-		client.run();
-=======
+
 
 		client.run();
 	
 		client.createAndShowGUI();
-		
 
->>>>>>> Fix
 		/*try {
 			InetAddress host = InetAddress.getLocalHost();
 			if ( args.length > 0 ) {
