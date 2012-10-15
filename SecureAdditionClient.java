@@ -6,6 +6,8 @@ import java.security.KeyStore;
 import javax.net.ssl.*;
 import javax.swing.*;
 import java.awt.*;
+import java.util.*;
+import java.awt.event.*;
 
 class ExtraThread extends Thread{
 		BufferedReader incoming;
@@ -28,31 +30,91 @@ class ExtraThread extends Thread{
 
 
 
-public class SecureAdditionClient {
+public class SecureAdditionClient implements ActionListener {
 
 	public SecureAdditionClient () {
 
 		}
 
-	//GUI 
-	private static void createAndShowGUI()
+	
+	private InetAddress host;
+	// This is not a reserved port number 
+	static final int port = 8189;
+	static final String KEYSTORE = "ClientKeystore.ks";
+	static final String TRUSTSTORE = "ClientTruststore.ks";
+	static final String STOREPASSWD = "111111";
+	static final String ALIASPASSWD = "333333";
+	private BufferedReader in = null;
+	private PrintWriter out = null;
+	private Vector<JRadioButton> buttonList = null;
+	private JPanel alternatives;
+	private JRadioButton alt1;
+	private JButton voteButton;
+	private JLabel results;
+	private ButtonGroup buttonGroup;
+  
+	
+	public SecureAdditionClient( InetAddress host ) {
+		this.host = host;
+	}
+
+//GUI 
+	private void createAndShowGUI()
 	{
+		String inStr = "";
+		int nrOfArguments = 0;
+		buttonList = new Vector<JRadioButton>();
+
+		try {
 		//Window
-		JFrame frame = new JFrame("TestarGUI");
+		JFrame frame = new JFrame("VotingMachine");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		//Layout
 		JPanel contentPane = new JPanel(new BorderLayout());
 
 		//Label
-		JLabel label = new JLabel("Hello Voting People!");
+		this.out.println("fetch_question"); //ask for a question from server
+		inStr = this.in.readLine();
+		CommandParser question = new CommandParser(inStr);
+		JLabel label = new JLabel(question.next_argument());
 		contentPane.add(label, BorderLayout.PAGE_START);
 
 		//Buttons
-		JRadioButton voteButton1 = new JRadioButton("Vote for Kristina ;D");
+		this.out.println("fetch_alternatives");
+		inStr= this.in.readLine(); 
+		CommandParser command = new CommandParser(inStr);
+	
+		//buttongroup
+		buttonGroup = new ButtonGroup();
+		alternatives = new JPanel();
+		alternatives.setLayout(new GridLayout(command.count_arguments(),1));
 		
-		contentPane.add(voteButton1, BorderLayout.CENTER);
+		System.out.println(command.count_arguments());
+		for (int i = 0; i<command.count_arguments(); i++)
+		{
+		String arg = command.next_argument();
+		System.out.println(arg);
+		JRadioButton temp = new JRadioButton(arg);
+		buttonList.add(temp);
+		buttonGroup.add(temp);
+		alternatives.add(temp);
+		}
+		
+		contentPane.add(alternatives , BorderLayout.CENTER);
+			
+				
+		//VoteButton
+		voteButton = new JButton("Vote!");
+		voteButton.addActionListener(this);
+		contentPane.add(voteButton, BorderLayout.EAST);
+		
+		//VotingResults
+		results = new JLabel("Resultat");
+		contentPane.add(results, BorderLayout.SOUTH);
 
+		
+		
 		frame.setContentPane(contentPane);		
 		
 
@@ -64,22 +126,29 @@ public class SecureAdditionClient {
 		//Display the window
 		frame.pack();
 		frame.setVisible(true);
+		}
+		
+		catch(Exception e)
+		{
+
+		}
 	}
 
 	//End of GUI
-	private InetAddress host;
-	// This is not a reserved port number 
-	static final int port = 8189;
-	static final String KEYSTORE = "ClientKeystore.ks";
-	static final String TRUSTSTORE = "ClientTruststore.ks";
-	static final String STOREPASSWD = "111111";
-	static final String ALIASPASSWD = "333333";
-  
 	
-	public SecureAdditionClient( InetAddress host ) {
-		this.host = host;
-	}
+//Lyssnarmetod
+
+	public void actionPerformed(ActionEvent e) {
 	
+
+			 if(e.getSource() == voteButton)
+			{	
+				System.out.println("Du har röstat!");
+			}
+			
+		}
+
+
   // The method used to start a client object
 	public void run() {
 		try {
@@ -105,22 +174,14 @@ public class SecureAdditionClient {
 			System.out.println(ciphers[9]);
 			clientSocket.setEnabledCipherSuites( selectedCiphers );
 			
-			BufferedReader in;
-			in = new BufferedReader( new InputStreamReader( clientSocket.getInputStream() ) );
-			PrintWriter out = new PrintWriter( clientSocket.getOutputStream(), true );
 			
-			ExtraThread incThread = new ExtraThread(in);
-			incThread.start();
+			this.in = new BufferedReader( new InputStreamReader( clientSocket.getInputStream() ) );
+			this.out = new PrintWriter( clientSocket.getOutputStream(), true );
 			
-			String str;
-			String outStr = "";
-			while (!outStr.equals("ciao") ) {
-				
-				BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-				outStr = reader.readLine();
-				out.println(outStr);
+			//ExtraThread incThread = new ExtraThread(in);
+			//incThread.start();
+			
 
-			}
 			
 
 		}
@@ -132,9 +193,21 @@ public class SecureAdditionClient {
 	
 	
 	public static void main( String[] args ) {
+
+
+
 		SecureAdditionClient client = new SecureAdditionClient(); 
+<<<<<<< HEAD
 		//client.createAndShowGUI();
 		client.run();
+=======
+
+		client.run();
+	
+		client.createAndShowGUI();
+		
+
+>>>>>>> Fix
 		/*try {
 			InetAddress host = InetAddress.getLocalHost();
 			if ( args.length > 0 ) {
