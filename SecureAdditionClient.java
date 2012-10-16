@@ -45,9 +45,12 @@ public class SecureAdditionClient implements ActionListener {
 	private BufferedReader in = null;
 	private PrintWriter out = null;
 	private Vector<JRadioButton> buttonList = null;
+	private Vector<String> alternativeList = null;
+	private Vector<String> nrOfVotes = null;
 	private JPanel alternatives;
 	private JRadioButton alt1;
 	private JButton voteButton;
+<<<<<<< HEAD
 	private JLabel results;
 	private ButtonGroup buttonGroup;
 	private int token;
@@ -57,6 +60,14 @@ public class SecureAdditionClient implements ActionListener {
 	
 	public SecureAdditionClient( InetAddress host ) {
 		this.host = host;
+=======
+	private JPanel results;
+	private ButtonGroup buttonGroup;
+  
+	
+	public SecureAdditionClient( InetAddress host ) {
+		this.host = host;
+>>>>>>> Stats gui
 	}
 
 	//GUI 
@@ -65,6 +76,7 @@ public class SecureAdditionClient implements ActionListener {
 		String inStr = "";
 		int nrOfArguments = 0;
 		buttonList = new Vector<JRadioButton>();
+		alternativeList = new Vector<String>();
 
 		try {
 		//Window
@@ -85,6 +97,11 @@ public class SecureAdditionClient implements ActionListener {
 		this.out.println("fetch_alternatives");
 		inStr= this.in.readLine(); 
 		CommandParser command = new CommandParser(inStr);
+
+		//Statistics
+		this.out.println("fetch_statistics");
+		inStr= this.in.readLine();
+		CommandParser stats = new CommandParser(inStr);
 	
 		//buttongroup
 		buttonGroup = new ButtonGroup();
@@ -94,12 +111,18 @@ public class SecureAdditionClient implements ActionListener {
 		System.out.println(command.count_arguments());
 		for (int i = 0; i<command.count_arguments(); i++)
 		{
+		//alternatives
 		String arg = command.next_argument();
-		System.out.println(arg);
+		alternativeList.add(arg);
 		JRadioButton temp = new JRadioButton(arg);
 		buttonList.add(temp);
 		buttonGroup.add(temp);
 		alternatives.add(temp);
+		
+		//statistics
+		String nr = stats.next_argument();
+		nrOfVotes.add(nr);
+
 		}
 		
 		contentPane.add(alternatives , BorderLayout.CENTER);
@@ -109,9 +132,22 @@ public class SecureAdditionClient implements ActionListener {
 		voteButton = new JButton("Vote!");
 		voteButton.addActionListener(this);
 		contentPane.add(voteButton, BorderLayout.EAST);
+				
 		
 		//VotingResults
-		results = new JLabel("Resultat");
+		results = new JPanel();
+		results.setLayout(new GridLayout(alternativeList.size(),2)); //alternative, number of votes
+		for(int i=0; i<alternativeList.size(); i++)
+		{
+		JLabel label1 = new JLabel(alternativeList.get(i));
+		
+		JLabel label2 = new JLabel(nrOfVotes.get(i));
+		results.add(label1);
+		results.add(label2);
+		label1 = null;
+		label1 = null;
+
+		}
 		contentPane.add(results, BorderLayout.SOUTH);
 
 		
