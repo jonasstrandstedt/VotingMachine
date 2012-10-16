@@ -98,6 +98,7 @@ public class SecureAdditionClient implements ActionListener {
 		buttonGroup = new ButtonGroup();
 		alternatives = new JPanel();
 		alternatives.setLayout(new GridLayout(command.count_arguments(),1));
+		print_cmd("stats = " + stats.count_arguments());
 		
 		System.out.println(command.count_arguments());
 		for (int i = 0; i<command.count_arguments(); i++)
@@ -109,13 +110,12 @@ public class SecureAdditionClient implements ActionListener {
 		buttonList.add(temp);
 		buttonGroup.add(temp);
 		alternatives.add(temp);
-		
 		//statistics
 		String nr = stats.next_argument();
 		nrOfVotes.add(nr);
 
 		}
-		
+
 		contentPane.add(alternatives , BorderLayout.CENTER);
 			
 				
