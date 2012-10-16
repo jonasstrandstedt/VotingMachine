@@ -50,8 +50,7 @@ public class SecureAdditionClient implements ActionListener {
 	private JPanel alternatives;
 	private JRadioButton alt1;
 	private JButton voteButton;
-<<<<<<< HEAD
-	private JLabel results;
+	private JPanel results;
 	private ButtonGroup buttonGroup;
 	private int token;
 	
@@ -60,14 +59,6 @@ public class SecureAdditionClient implements ActionListener {
 	
 	public SecureAdditionClient( InetAddress host ) {
 		this.host = host;
-=======
-	private JPanel results;
-	private ButtonGroup buttonGroup;
-  
-	
-	public SecureAdditionClient( InetAddress host ) {
-		this.host = host;
->>>>>>> Stats gui
 	}
 
 	//GUI 
