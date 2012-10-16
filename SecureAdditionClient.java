@@ -46,7 +46,7 @@ public class SecureAdditionClient implements ActionListener {
 	private PrintWriter out = null;
 	private Vector<JRadioButton> buttonList = null;
 	private Vector<String> alternativeList = null;
-	private Vector<String> nrOfVotes = null;
+	private Vector<JLabel> nrOfVotes = null;
 	private JPanel alternatives;
 	private JRadioButton alt1;
 	private JButton voteButton;
@@ -68,6 +68,7 @@ public class SecureAdditionClient implements ActionListener {
 		int nrOfArguments = 0;
 		buttonList = new Vector<JRadioButton>();
 		alternativeList = new Vector<String>();
+		nrOfVotes = new Vector<JLabel>();
 
 		try {
 		//Window
@@ -102,18 +103,15 @@ public class SecureAdditionClient implements ActionListener {
 		System.out.println(command.count_arguments());
 		for (int i = 0; i<command.count_arguments(); i++)
 		{
-		//alternatives
-		String arg = command.next_argument();
-		alternativeList.add(arg);
-		JRadioButton temp = new JRadioButton(arg);
-		buttonList.add(temp);
-		buttonGroup.add(temp);
-		alternatives.add(temp);
-		
-		//statistics
-		String nr = stats.next_argument();
-		nrOfVotes.add(nr);
-
+			//alternatives
+			String arg = command.next_argument();
+			alternativeList.add(arg);
+			System.out.println(arg);
+			JRadioButton temp = new JRadioButton(arg);
+			buttonList.add(temp);
+			buttonGroup.add(temp);
+			alternatives.add(temp);
+	
 		}
 		
 		contentPane.add(alternatives , BorderLayout.CENTER);
@@ -130,13 +128,14 @@ public class SecureAdditionClient implements ActionListener {
 		results.setLayout(new GridLayout(alternativeList.size(),2)); //alternative, number of votes
 		for(int i=0; i<alternativeList.size(); i++)
 		{
-		JLabel label1 = new JLabel(alternativeList.get(i));
-		
-		JLabel label2 = new JLabel(nrOfVotes.get(i));
-		results.add(label1);
-		results.add(label2);
-		label1 = null;
-		label1 = null;
+			JLabel label1 = new JLabel(alternativeList.get(i));
+			
+			JLabel label2 = new JLabel(stats.next_argument());
+			nrOfVotes.add(label2);
+			results.add(label1);
+			results.add(label2);
+			label1 = null;
+			label2 = null;
 
 		}
 		contentPane.add(results, BorderLayout.SOUTH);
@@ -172,12 +171,18 @@ public class SecureAdditionClient implements ActionListener {
 //Lyssnarmetod
 
 	public void actionPerformed(ActionEvent e) {
-	
 
-			 if(e.getSource() == voteButton)
-			{	
-				System.out.println("Du har röstat!");
+		 if(e.getSource() == voteButton)
+		{	
+			System.out.println("Du har röstat!");
+			
+			for(int i=0; i<buttonList.size(); i++)
+			{
+				if(buttonList.get(i).isSelected()){
+					this.out.println("vote " + this.token + " " + i);
+				}
 			}
+		}
 			
 	}
 
@@ -189,6 +194,11 @@ public class SecureAdditionClient implements ActionListener {
 
 			if (cmd.isEqual("quit", "q")) {
 				return false;
+			}
+			if (cmd.isEqual("statistics")) { //update labels for statistics
+				for(int i=0; i<nrOfVotes.size(); i++){
+				nrOfVotes.get(i).setText(cmd.next_argument());
+				}
 			}
 			
 		}
