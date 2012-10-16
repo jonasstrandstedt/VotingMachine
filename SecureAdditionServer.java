@@ -94,6 +94,7 @@ class ServerConnectionHandler extends Thread {
 
 			if (cmd.isEqual("quit", "q")) {
 				out.println("Terminating connection on request, thank you!");
+				out.println("quit");
 				return false;
 			}
 			
@@ -108,19 +109,11 @@ class ServerConnectionHandler extends Thread {
 			if (cmd.isEqual("vote")) {
 				main.vote(cmd.next_argument(),cmd.next_argument());
 			}
-
-			if(cmd.isEqual("add") && cmd.count_arguments() > 0) {
-				String num = cmd.next_argument();
-				main.add(num);
+			
+			if (cmd.isEqual("fetch_stats", "fetch_statistics")) {
+				out.println(main.get_statistics());
 			}
-
-			if(cmd.isEqual("argtest")) {
-				this.print_cmd("Command: " + cmd);
-				this.print_cmd("Arg1: " + cmd.next_argument());
-				this.print_cmd("Arg2: " + cmd.next_argument());
-				this.print_cmd("Arg3: " + cmd.next_argument());
-				this.print_cmd("Arg4: " + cmd.next_argument());
-			}
+			
 		}
 		catch( Exception x ) {
 			System.out.println( x );
@@ -239,31 +232,6 @@ public class SecureAdditionServer {
 			x.printStackTrace();
 		}
 	}
-
-	public void add(String nr) {
-		int number = 0;
-		try {
-			number = Integer.parseInt(nr);
-		}
-		catch (NumberFormatException nfo) {}
-
-		this.print_cmd("Trying to acquire the mutex");
-		try {
-			mutex.acquire();
-			this.print_cmd("Mutex aquired");
-			additionresult += number;
-			
-			this.notify_all_connections("number is now " + additionresult);
-			Thread.sleep(4000);
-
-			mutex.release();
-			this.print_cmd("Mutex released");
-		}
-		catch(InterruptedException ie) {
-
-		}
-		
-	}
 	
 	public void vote(String token, String vote) { 
 		this.print_cmd("Recieved vote");
@@ -298,23 +266,8 @@ public class SecureAdditionServer {
 						this.print_cmd("Adding vote " + votelist.lastElement());
 					}
 					
-					int first = 0;
-					int second = 0;
-					int third = 0;
 					
-					for (int i = 0; i < votelist.size(); i++ ) {
-						if(votelist.elementAt(i).get_vote() == 0) {
-							first++;
-						}
-						if(votelist.elementAt(i).get_vote() == 1) {
-							second++;
-						}
-						if(votelist.elementAt(i).get_vote() == 2) {
-							third++;
-						}
-					}
-					
-					String stats = "statistics " + first + " " + second + " " +third;
+					String stats = this.get_statistics();
 					this.print_cmd("Sending: " + stats);
 					this.notify_all_connections(stats);
 				}
@@ -327,6 +280,26 @@ public class SecureAdditionServer {
 				this.print_cmd("Mutex interruption");
 			}
 		}
+	}
+	
+	public String get_statistics() {
+		int first = 0;
+		int second = 0;
+		int third = 0;
+					
+		for (int i = 0; i < votelist.size(); i++ ) {
+			if(votelist.elementAt(i).get_vote() == 0) {
+				first++;
+			}
+			if(votelist.elementAt(i).get_vote() == 1) {
+				second++;
+			}
+			if(votelist.elementAt(i).get_vote() == 2) {
+				third++;
+			}
+		}
+					
+		return "statistics " + first + " " + second + " " +third;
 	}
 	
 	public String get_question() {

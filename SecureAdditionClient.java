@@ -9,34 +9,32 @@ import java.awt.*;
 import java.util.*;
 import java.awt.event.*;
 
-class ExtraThread extends Thread{
-		BufferedReader incoming;
-         ExtraThread(BufferedReader in) {
-             this.incoming = in;
-         }
- 
-         public void run() {
-			 try {
-				 String inputLine;
-	 			while ((inputLine = this.incoming.readLine()) != null && !inputLine.equals("Bye.")) {
-			
-	 				System.out.println(inputLine);
-	 			}
-				 } catch(IOException ioe) {
-				 }
-			 
-         }
-     }
+class ExtraThread extends Thread {
+	BufferedReader incoming;
+	SecureAdditionClient client;
+	Boolean wait_for_command;
+	
+	ExtraThread(BufferedReader in, SecureAdditionClient c) {
+		this.incoming = in;
+		this.client = c;
+		wait_for_command = true;
+	}
+	
+	public void run() {
+		try {
+			String inputLine;
+			while (wait_for_command) {
+				inputLine = this.incoming.readLine();
+				wait_for_command = client.handle_command(inputLine);
+			}
+		} catch(IOException ioe) {
+		} 
+	}
+}
 
 
 
 public class SecureAdditionClient implements ActionListener {
-
-	public SecureAdditionClient () {
-
-		}
-
-	
 	private InetAddress host;
 	// This is not a reserved port number 
 	static final int port = 8189;
@@ -52,13 +50,16 @@ public class SecureAdditionClient implements ActionListener {
 	private JButton voteButton;
 	private JLabel results;
 	private ButtonGroup buttonGroup;
-  
+	private int token;
+	
+	public SecureAdditionClient () {
+	}
 	
 	public SecureAdditionClient( InetAddress host ) {
 		this.host = host;
 	}
 
-//GUI 
+	//GUI 
 	private void createAndShowGUI()
 	{
 		String inStr = "";
@@ -126,6 +127,11 @@ public class SecureAdditionClient implements ActionListener {
 		//Display the window
 		frame.pack();
 		frame.setVisible(true);
+		
+		// listen for commands
+		ExtraThread incThread = new ExtraThread(in, this);
+		incThread.start();
+		
 		}
 		
 		catch(Exception e)
@@ -146,9 +152,27 @@ public class SecureAdditionClient implements ActionListener {
 				System.out.println("Du har röstat!");
 			}
 			
+	}
+
+	public Boolean handle_command(String command) {
+		try {
+			this.print_cmd("Recieved: " + command);
+
+			CommandParser cmd = new CommandParser(command);
+
+			if (cmd.isEqual("quit", "q")) {
+				return false;
+			}
+			
+		}
+		catch( Exception x ) {
+			System.out.println( x );
+			x.printStackTrace();
+			return false;
 		}
 
-
+		return true;
+	}
   // The method used to start a client object
 	public void run() {
 		try {
@@ -178,17 +202,35 @@ public class SecureAdditionClient implements ActionListener {
 			this.in = new BufferedReader( new InputStreamReader( clientSocket.getInputStream() ) );
 			this.out = new PrintWriter( clientSocket.getOutputStream(), true );
 			
-			//ExtraThread incThread = new ExtraThread(in);
-			//incThread.start();
 			
-
-			
-
 		}
 		catch( Exception x ) {
 			System.out.println( x );
 			x.printStackTrace();
 		}
+	}
+	
+	public void print_cmd(String msg) {
+		System.out.println(">>>> Secure Client: " + msg);
+	}
+	
+	public Boolean get_token() {
+		
+		Authenticate auth = new Authenticate();
+		String name = null;
+		String password = null;
+		
+		while(name == null || name.equals("")) {
+			name = JOptionPane.showInputDialog(null, "Enter username: ", "", 1);
+		}
+		while(password == null || password.equals("")) {
+			password = JOptionPane.showInputDialog(null, "Enter password: ", "", 1);
+		}
+		
+		
+		this.token = auth.get_token(name, password);
+		
+		return this.token != -1;
 	}
 	
 	
@@ -198,10 +240,11 @@ public class SecureAdditionClient implements ActionListener {
 
 		SecureAdditionClient client = new SecureAdditionClient(); 
 
-
-		client.run();
-	
-		client.createAndShowGUI();
+		if (client.get_token()) {
+			client.run();
+			client.createAndShowGUI();
+		}
+		
 
 		/*try {
 			InetAddress host = InetAddress.getLocalHost();
