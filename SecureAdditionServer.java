@@ -128,10 +128,6 @@ class ServerConnectionHandler extends Thread {
 		out.println(command);
 	}
 
-	public void handle_notification() {
-		out.println("Shit just got real");
-	}
-
 	public void print_cmd(String msg) {
 		System.out.println("("+handler_id+") >> " + msg);
 	}
@@ -245,7 +241,7 @@ public class SecureAdditionServer {
 			this.print_cmd("Error in parsing vote");
 		}
 		
-		if(vote_number < 3) {
+		if(vote_number < 3 && vote_number >= 0) {
 			this.print_cmd("Trying to acquire the mutex");
 			try {
 				mutex.acquire();
@@ -272,7 +268,7 @@ public class SecureAdditionServer {
 					this.notify_all_connections(stats);
 				}
 				
-
+				//Thread.sleep(4000);
 				mutex.release();
 				this.print_cmd("Mutex released");
 			}

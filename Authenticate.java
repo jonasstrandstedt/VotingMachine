@@ -13,7 +13,7 @@ class User {
 	}
 	
 	public Boolean isEqual(String n, String p) {
-		return this.name.equals(n) && this.password.equals(p);
+		return this.name.equals(n) && this.password.equals(this.hash(p));
 	}
 	
 	public int get_token() {
